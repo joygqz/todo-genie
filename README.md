@@ -20,11 +20,11 @@ The view scans the whole workspace on startup and refreshes automatically as you
 
 ## Settings
 
-| Setting | Description |
-| --- | --- |
-| `todo-genie.tags` | Comment tags to scan for (default `TODO`, `FIXME`, `HACK`, `BUG`, `XXX`, `NOTE`) |
-| `todo-genie.groupBy` | Group todos by `tag` or `file` |
-| `todo-genie.exclude` | Extra glob to exclude, e.g. `**/*.min.js` |
+| Setting | Description | Default |
+| --- | --- | --- |
+| `todo-genie.tags` | Comment tags to scan for | `TODO`, `FIXME`, `HACK`, `BUG`, `XXX`, `NOTE` |
+| `todo-genie.groupBy` | Group todos by `tag` or `file` | `tag` |
+| `todo-genie.exclude` | Extra glob to exclude, e.g. `**/*.min.js` | — |
 
 ## Commands
 
