@@ -140,7 +140,7 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Extra glob patterns to exclude from scanning. Inherits from `files.exclude` and `search.exclude`.",
+          "markdownDescription": "Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude`.",
           "order": 1
         }
       }
