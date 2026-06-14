@@ -154,7 +154,13 @@ export function activate(context: ExtensionContext) {
     window.onDidChangeActiveTextEditor(onActiveEditor),
     window.onDidChangeVisibleTextEditors(() => decorator.refresh()),
     window.onDidChangeTextEditorSelection(updateLineContext),
-    workspace.onDidChangeTextDocument(scheduleDecorate),
+    workspace.onDidChangeTextDocument((event) => {
+      // Only visible editors get repainted, so ignore edits to off-screen
+      // documents (background buffers, output channels, …).
+      if (window.visibleTextEditors.some(editor => editor.document === event.document)) {
+        scheduleDecorate()
+      }
+    }),
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('todo-genie')) {
         decorator.setConfig(getConfig())

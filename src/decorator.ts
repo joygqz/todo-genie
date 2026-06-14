@@ -67,10 +67,9 @@ export class TodoDecorator {
     const byTag = new Map<string, Range[]>()
     for (const match of scanDocument(editor.document, this.tags)) {
       // Tags keep their length when upper-cased, so the tag word spans
-      // [column, column + tag.length] on its line. With whole-line highlight
-      // the range runs to the end of the line, covering the comment text too.
+      // [column, column + tag.length]; line mode runs to the content end.
       const end = this.mode === 'line'
-        ? editor.document.lineAt(match.line).range.end.character
+        ? match.end
         : match.column + match.tag.length
       const range = new Range(match.line, match.column, match.line, end)
       const ranges = byTag.get(match.tag) ?? []
