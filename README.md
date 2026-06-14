@@ -29,7 +29,9 @@ The view scans the whole workspace on startup and refreshes automatically as you
 ## Commands
 
 - `Todo Genie: Refresh` — rescan the workspace
-- `Todo Genie: Toggle Grouping (Tag / File)` — switch how todos are grouped
+- `Todo Genie: Toggle Grouping` — switch grouping between tag and file
+- `Todo Genie: Collapse All` — collapse every group in the tree
+- `Todo Genie: Expand All` — expand every group in the tree
 
 ## License
 
