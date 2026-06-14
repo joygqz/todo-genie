@@ -5,7 +5,6 @@ export type GroupBy = 'tag' | 'file'
 export interface Config {
   tags: string[]
   exclude: string[]
-  groupBy: GroupBy
 }
 
 const DEFAULT_TAGS = ['TODO', 'FIXME', 'HACK', 'BUG', 'XXX', 'NOTE']
@@ -24,6 +23,5 @@ export function getConfig(): Config {
   return {
     tags: tags.length ? tags : DEFAULT_TAGS,
     exclude,
-    groupBy: config.get<GroupBy>('groupBy', 'tag'),
   }
 }

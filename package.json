@@ -78,19 +78,41 @@
         "command": "todo-genie.toggleGrouping",
         "title": "Toggle Grouping (Tag / File)",
         "icon": "$(group-by-ref-type)"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.collapseAll",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.expandAll",
+        "title": "Expand All",
+        "icon": "$(expand-all)"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "todo-genie.toggleGrouping",
-          "group": "navigation",
+          "group": "navigation@1",
           "when": "view == todo-genie.todos"
         },
         {
           "command": "todo-genie.refresh",
-          "group": "navigation",
+          "group": "navigation@2",
           "when": "view == todo-genie.todos"
+        },
+        {
+          "command": "todo-genie.collapseAll",
+          "group": "navigation@3",
+          "when": "view == todo-genie.todos && !todo-genie.collapsed"
+        },
+        {
+          "command": "todo-genie.expandAll",
+          "group": "navigation@3",
+          "when": "view == todo-genie.todos && todo-genie.collapsed"
         }
       ]
     },
@@ -113,16 +135,6 @@
           "description": "Comment tags to scan for.",
           "order": 0
         },
-        "todo-genie.groupBy": {
-          "type": "string",
-          "enum": [
-            "tag",
-            "file"
-          ],
-          "default": "tag",
-          "description": "Group todos by tag or file.",
-          "order": 1
-        },
         "todo-genie.exclude": {
           "type": "array",
           "items": {
@@ -130,7 +142,7 @@
           },
           "default": [],
           "markdownDescription": "Extra glob patterns to exclude from scanning. Inherits from `files.exclude` and `search.exclude`.",
-          "order": 2
+          "order": 1
         }
       }
     }
