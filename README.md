@@ -24,7 +24,7 @@ The view scans the whole workspace on startup and refreshes automatically as you
 | Setting | Description | Default |
 | --- | --- | --- |
 | `todo-genie.tags` | Comment tags to scan for | `TODO`, `FIXME`, `HACK`, `BUG`, `XXX`, `NOTE` |
-| `todo-genie.exclude` | Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude` | `[]` |
+| `todo-genie.exclude` | Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude` (e.g. `**/*.min.js`) | `[]` |
 
 ## Commands
 

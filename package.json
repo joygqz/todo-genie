@@ -140,7 +140,7 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude`.",
+          "markdownDescription": "Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude`, e.g. `**/*.min.js`.",
           "order": 1
         }
       }
