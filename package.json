@@ -1,0 +1,166 @@
+{
+  "publisher": "joygqz",
+  "name": "todo-genie",
+  "displayName": "Todo Genie",
+  "version": "1.0.0",
+  "packageManager": "pnpm@11.6.0+sha512.9a36518224080c6fe5165afdcfe79bfa118c29be703f3f462b1e32efe1e98e47e8750b148e08286250aad4113cc7993ca413c4e2cd447752708c2ee5751bc95f",
+  "description": "Find and browse every TODO, FIXME and HACK comment across your codebase in one tree view.",
+  "license": "MIT",
+  "homepage": "https://github.com/joygqz/todo-genie#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joygqz/todo-genie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/joygqz/todo-genie/issues"
+  },
+  "keywords": [
+    "todo",
+    "fixme",
+    "hack",
+    "comments",
+    "tasks",
+    "tree view",
+    "productivity"
+  ],
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "main": "./dist/extension.js",
+  "icon": "./images/logo.png",
+  "files": [
+    "LICENSE",
+    "dist/*",
+    "images/*"
+  ],
+  "engines": {
+    "vscode": "^1.120.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "todo-genie",
+          "title": "Todo Genie",
+          "icon": "$(checklist)"
+        }
+      ]
+    },
+    "views": {
+      "todo-genie": [
+        {
+          "id": "todo-genie.todos",
+          "name": "Todos",
+          "icon": "$(checklist)"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "todo-genie.todos",
+        "contents": "No TODO comments found in this workspace.\n[Refresh](command:todo-genie.refresh)"
+      }
+    ],
+    "commands": [
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.toggleGrouping",
+        "title": "Toggle Grouping (Tag / File)",
+        "icon": "$(group-by-ref-type)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "todo-genie.toggleGrouping",
+          "group": "navigation",
+          "when": "view == todo-genie.todos"
+        },
+        {
+          "command": "todo-genie.refresh",
+          "group": "navigation",
+          "when": "view == todo-genie.todos"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Todo Genie",
+      "properties": {
+        "todo-genie.tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "TODO",
+            "FIXME",
+            "HACK",
+            "BUG",
+            "XXX",
+            "NOTE"
+          ],
+          "description": "Comment tags to scan for. Tags are matched as whole words inside comments.",
+          "order": 0
+        },
+        "todo-genie.groupBy": {
+          "type": "string",
+          "enum": [
+            "tag",
+            "file"
+          ],
+          "default": "tag",
+          "description": "Group todos by tag or by file.",
+          "order": 1
+        },
+        "todo-genie.exclude": {
+          "type": "string",
+          "markdownDescription": "Extra glob to exclude from scanning, e.g. `**/*.min.js`. Dependency, build and VCS folders are always skipped.",
+          "order": 2
+        }
+      }
+    }
+  },
+  "scripts": {
+    "prepare": "simple-git-hooks",
+    "vscode:prepublish": "pnpm run package",
+    "package": "pnpm run check-types && pnpm run lint && node build.js --production",
+    "compile": "pnpm run check-types && pnpm run lint && node build.js",
+    "watch": "run-p watch:*",
+    "watch:build": "node build.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint .",
+    "ext:package": "vsce package",
+    "ext:publish": "vsce publish",
+    "release": "bumpp -a"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^9.0.0",
+    "@types/node": "~24.13.2",
+    "@types/vscode": "^1.120.0",
+    "@vscode/vsce": "^3.9.2",
+    "bumpp": "^11.1.0",
+    "eslint": "^10.5.0",
+    "lint-staged": "^17.0.7",
+    "npm-run-all2": "^8.0.4",
+    "rolldown": "^1.1.1",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "^6.0.3"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm run check-types && pnpm exec lint-staged"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  }
+}
