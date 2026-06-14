@@ -17,6 +17,9 @@ const DEFAULT_EXCLUDE = '**/{node_modules,.git,dist,out,build,.next,.nuxt,covera
 const MAX_FILE_SIZE = 512 * 1024
 const MAX_TEXT_LENGTH = 200
 
+// How many files to read at once during a scan.
+const MAX_CONCURRENCY = 16
+
 // Comment leaders across common languages, so plain words like "todo list"
 // in strings or prose don't get picked up.
 const COMMENT_LEADER = String.raw`(?://+|/\*+|\*+|<!--|#+|;+|--+|%+|"""|''')`
@@ -36,12 +39,20 @@ export async function scan(config: Config, token?: CancellationToken): Promise<T
   const files = await workspace.findFiles('**/*', exclude, undefined, token)
   const todos: Todo[] = []
 
-  for (const uri of files) {
-    if (token?.isCancellationRequested) {
-      break
+  // Read files in parallel with a bounded number of workers so large
+  // workspaces don't block on one slow read at a time.
+  let next = 0
+  const worker = async () => {
+    while (next < files.length) {
+      if (token?.isCancellationRequested) {
+        break
+      }
+      todos.push(...await scanFile(files[next++], pattern))
     }
-    todos.push(...await scanFile(uri, pattern))
   }
+  await Promise.all(
+    Array.from({ length: Math.min(MAX_CONCURRENCY, files.length) }, worker),
+  )
 
   return todos.sort((a, b) =>
     a.uri.fsPath.localeCompare(b.uri.fsPath) || a.line - b.line)
@@ -90,7 +101,8 @@ function buildPattern(tags: string[]): RegExp {
     .map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     .join('|')
   // leader, then the tag as a whole word, an optional separator, then the text.
-  return new RegExp(`${COMMENT_LEADER}\\s*(${alternation})\\b[:：\\-\\s]*(.*)`)
+  // Case-insensitive so `// todo` is found too; the tag is normalised on match.
+  return new RegExp(`${COMMENT_LEADER}\\s*(${alternation})\\b[:：\\-\\s]*(.*)`, 'i')
 }
 
 function clean(text: string): string {

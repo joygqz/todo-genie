@@ -1,7 +1,7 @@
 import type { Event, ProviderResult, TreeDataProvider, Uri } from 'vscode'
 import type { GroupBy } from './config'
 import type { Todo } from './scanner'
-import { EventEmitter, MarkdownString, ThemeColor, ThemeIcon, TreeItem, TreeItemCollapsibleState, workspace } from 'vscode'
+import { EventEmitter, MarkdownString, Position, Range, ThemeColor, ThemeIcon, TreeItem, TreeItemCollapsibleState, workspace } from 'vscode'
 
 /** A group header (a tag or a file) or a single TODO. */
 type Node = GroupNode | Todo
@@ -103,8 +103,8 @@ function todoItem(todo: Todo): TreeItem {
   return item
 }
 
-function range(todo: Todo) {
+function range(todo: Todo): Range {
   // A zero-width selection at the tag puts the cursor on the comment.
-  const position = { line: todo.line, character: todo.column }
-  return { start: position, end: position }
+  const position = new Position(todo.line, todo.column)
+  return new Range(position, position)
 }
