@@ -2,9 +2,11 @@ import { workspace } from 'vscode'
 
 export type GroupBy = 'tag' | 'file'
 
+export type HighlightMode = 'off' | 'tag' | 'line'
+
 export interface Config {
   tags: string[]
-  highlightEnabled: boolean
+  highlight: HighlightMode
   exclude: string[]
 }
 
@@ -23,7 +25,7 @@ export function getConfig(): Config {
 
   return {
     tags: tags.length ? tags : DEFAULT_TAGS,
-    highlightEnabled: config.get<boolean>('highlight', true),
+    highlight: config.get<HighlightMode>('highlight', 'tag'),
     exclude,
   }
 }

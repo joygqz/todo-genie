@@ -62,7 +62,18 @@
     "viewsWelcome": [
       {
         "view": "todo-genie.todos",
-        "contents": "No TODO comments found in this workspace.\n[Refresh](command:todo-genie.refresh)"
+        "contents": "Scanning the workspace for TODO comments…",
+        "when": "todo-genie.scanning"
+      },
+      {
+        "view": "todo-genie.todos",
+        "contents": "No TODO comments in the current file.\n[Show All Files](command:todo-genie.scopeAllFiles)",
+        "when": "!todo-genie.scanning && todo-genie.scope == file"
+      },
+      {
+        "view": "todo-genie.todos",
+        "contents": "No TODO comments found in this workspace.\n[Refresh](command:todo-genie.refresh)",
+        "when": "!todo-genie.scanning && todo-genie.scope == all"
       }
     ],
     "commands": [
@@ -80,6 +91,18 @@
       },
       {
         "category": "Todo Genie",
+        "command": "todo-genie.scopeCurrentFile",
+        "title": "Show Current File Only",
+        "icon": "$(filter)"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.scopeAllFiles",
+        "title": "Show All Files",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "category": "Todo Genie",
         "command": "todo-genie.collapseAll",
         "title": "Collapse All",
         "icon": "$(collapse-all)"
@@ -89,29 +112,97 @@
         "command": "todo-genie.expandAll",
         "title": "Expand All",
         "icon": "$(expand-all)"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.revealInTree",
+        "title": "Reveal in Todo Genie",
+        "icon": "$(list-tree)"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.copyText",
+        "title": "Copy Text",
+        "icon": "$(copy)"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.copyLocation",
+        "title": "Copy Location"
       }
     ],
     "menus": {
-      "view/title": [
+      "commandPalette": [
         {
-          "command": "todo-genie.toggleGrouping",
-          "group": "navigation@1",
-          "when": "view == todo-genie.todos"
+          "command": "todo-genie.scopeCurrentFile",
+          "when": "todo-genie.scope == all"
         },
         {
-          "command": "todo-genie.refresh",
+          "command": "todo-genie.scopeAllFiles",
+          "when": "todo-genie.scope == file"
+        },
+        {
+          "command": "todo-genie.revealInTree",
+          "when": "false"
+        },
+        {
+          "command": "todo-genie.copyText",
+          "when": "false"
+        },
+        {
+          "command": "todo-genie.copyLocation",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "todo-genie.scopeCurrentFile",
+          "group": "navigation@1",
+          "when": "view == todo-genie.todos && todo-genie.scope == all"
+        },
+        {
+          "command": "todo-genie.scopeAllFiles",
+          "group": "navigation@1",
+          "when": "view == todo-genie.todos && todo-genie.scope == file"
+        },
+        {
+          "command": "todo-genie.toggleGrouping",
           "group": "navigation@2",
           "when": "view == todo-genie.todos"
         },
         {
-          "command": "todo-genie.collapseAll",
+          "command": "todo-genie.refresh",
           "group": "navigation@3",
+          "when": "view == todo-genie.todos"
+        },
+        {
+          "command": "todo-genie.collapseAll",
+          "group": "navigation@4",
           "when": "view == todo-genie.todos && !todo-genie.collapsed"
         },
         {
           "command": "todo-genie.expandAll",
-          "group": "navigation@3",
+          "group": "navigation@4",
           "when": "view == todo-genie.todos && todo-genie.collapsed"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "todo-genie.copyText",
+          "group": "9_cutcopypaste@1",
+          "when": "view == todo-genie.todos && viewItem == todo"
+        },
+        {
+          "command": "todo-genie.copyLocation",
+          "group": "9_cutcopypaste@2",
+          "when": "view == todo-genie.todos && viewItem == todo"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "todo-genie.revealInTree",
+          "group": "navigation@9",
+          "when": "todo-genie.onTodoLine"
         }
       ]
     },
@@ -135,9 +226,19 @@
           "order": 0
         },
         "todo-genie.highlight": {
-          "type": "boolean",
-          "default": true,
-          "description": "Highlight matching comment tags directly in the editor.",
+          "type": "string",
+          "enum": [
+            "off",
+            "tag",
+            "line"
+          ],
+          "enumDescriptions": [
+            "Don't highlight comment tags in the editor.",
+            "Highlight only the matched tag word.",
+            "Highlight from the tag to the end of the line, covering the whole comment text."
+          ],
+          "default": "tag",
+          "description": "How to highlight matching comment tags directly in the editor.",
           "order": 1
         },
         "todo-genie.exclude": {

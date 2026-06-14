@@ -1,7 +1,9 @@
 import type { Event, ProviderResult, TreeDataProvider } from 'vscode'
 import type { GroupBy } from './config'
+import type { TagColors } from './palette'
 import type { Todo } from './scanner'
-import { EventEmitter, MarkdownString, Position, Range, ThemeColor, ThemeIcon, TreeItem, TreeItemCollapsibleState, Uri, workspace } from 'vscode'
+import { EventEmitter, MarkdownString, Position, Range, ThemeIcon, TreeItem, TreeItemCollapsibleState, Uri, workspace } from 'vscode'
+import { tagColor } from './palette'
 
 /** A tag header, a folder, a file, or a single TODO. */
 type Node = TagNode | DirNode | FileNode | Todo
@@ -40,11 +42,41 @@ export class TodoTree implements TreeDataProvider<Node> {
   private todos: Todo[] = []
   private groupBy: GroupBy = 'tag'
   private collapsed = false
+  private tagColors: TagColors = new Map()
 
-  setData(todos: Todo[], groupBy: GroupBy) {
+  // Scope filter: when scoped, only `scopeUri`'s todos are shown (or none if no
+  // file is active). When not scoped, the whole workspace is shown.
+  private scoped = false
+  private scopeUri: string | undefined
+
+  // The currently displayed tree, rebuilt whenever data, grouping, or scope
+  // changes. Caching it (rather than rebuilding per getChildren call) keeps a
+  // stable parent map so the editor's "Reveal in tree" command can walk up.
+  private roots: Node[] = []
+  private readonly parents = new Map<Node, Node>()
+  // Fast "is there a todo here?" lookup, keyed by `uri\0line`.
+  private readonly locations = new Set<string>()
+
+  setData(todos: Todo[], tagColors: TagColors) {
     this.todos = todos
+    this.tagColors = tagColors
+    this.locations.clear()
+    for (const todo of todos) {
+      this.locations.add(locKey(todo.uri, todo.line))
+    }
+    this.rebuild()
+  }
+
+  setGroupBy(groupBy: GroupBy) {
     this.groupBy = groupBy
-    this.emitter.fire()
+    this.rebuild()
+  }
+
+  /** Limit the view to one file (or none), or to the whole workspace. */
+  setScope(scoped: boolean, uri?: Uri) {
+    this.scoped = scoped
+    this.scopeUri = uri?.toString()
+    this.rebuild()
   }
 
   /** Force every parent node open or closed, then redraw. */
@@ -53,16 +85,31 @@ export class TodoTree implements TreeDataProvider<Node> {
     this.emitter.fire()
   }
 
+  /** True when a tag comment sits on the given line — drives a context key. */
+  hasTodoAt(uri: Uri, line: number): boolean {
+    return this.locations.has(locKey(uri, line))
+  }
+
+  /** The todo node at a location, for revealing it in the tree. */
+  find(uri: Uri, line: number): Todo | undefined {
+    const key = uri.toString()
+    return this.todos.find(todo => todo.line === line && todo.uri.toString() === key)
+  }
+
   getChildren(node?: Node): ProviderResult<Node[]> {
     if (!node) {
-      return this.groupBy === 'file' ? this.buildFileTree() : this.buildTagGroups()
+      return this.roots
     }
     return isParent(node) ? node.children : []
   }
 
+  getParent(node: Node): ProviderResult<Node> {
+    return this.parents.get(node)
+  }
+
   getTreeItem(node: Node): TreeItem {
     if (!isParent(node)) {
-      return todoItem(node)
+      return todoItem(node, this.tagColors)
     }
     const state = this.collapsed
       ? TreeItemCollapsibleState.Collapsed
@@ -70,7 +117,7 @@ export class TodoTree implements TreeDataProvider<Node> {
     let item: TreeItem
     switch (node.kind) {
       case 'tag':
-        item = tagItem(node, state)
+        item = tagItem(node, state, this.tagColors)
         break
       case 'dir':
         item = dirItem(node, state)
@@ -86,67 +133,99 @@ export class TodoTree implements TreeDataProvider<Node> {
     return item
   }
 
-  private buildTagGroups(): TagNode[] {
-    const groups = new Map<string, Todo[]>()
-    for (const todo of this.todos) {
-      const list = groups.get(todo.tag) ?? []
-      list.push(todo)
-      groups.set(todo.tag, list)
-    }
+  /** Recompute the displayed tree and its parent map, then redraw. */
+  private rebuild() {
+    const todos = !this.scoped
+      ? this.todos
+      : this.scopeUri
+        ? this.todos.filter(todo => todo.uri.toString() === this.scopeUri)
+        : []
 
-    return [...groups.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([label, children]) => ({ kind: 'tag' as const, id: `tag/${label}`, label, children }))
+    this.parents.clear()
+    this.roots = this.groupBy === 'file'
+      ? buildFileTree(todos)
+      : buildTagGroups(todos)
+    this.linkParents(this.roots, undefined)
+    this.emitter.fire()
   }
 
-  private buildFileTree(): Array<DirNode | FileNode> {
-    // Collect todos per file, keeping the scanner's line order.
-    const byFile = new Map<string, Todo[]>()
-    for (const todo of this.todos) {
-      const key = todo.uri.toString()
-      const list = byFile.get(key) ?? []
-      list.push(todo)
-      byFile.set(key, list)
-    }
-
-    // Build a folder hierarchy from each file's relative path. In multi-root
-    // workspaces the leading segment is the workspace folder name, which keeps
-    // files from different roots in separate top-level branches.
-    const root: DirNode = { kind: 'dir', id: '', label: '', children: [], count: 0 }
-    for (const todos of byFile.values()) {
-      const uri = todos[0].uri
-      const segments = workspace.asRelativePath(uri).split('/')
-      const fileName = segments.pop()!
-
-      let dir = root
-      let path = ''
-      const trail: DirNode[] = []
-      for (const segment of segments) {
-        path += `/${segment}`
-        let child = dir.children.find(
-          (c): c is DirNode => c.kind === 'dir' && c.label === segment,
-        )
-        if (!child) {
-          child = { kind: 'dir', id: path, label: segment, children: [], count: 0 }
-          dir.children.push(child)
-        }
-        dir = child
-        trail.push(child)
+  /** Record each node's parent so getParent can walk the tree upward. */
+  private linkParents(nodes: Node[], parent: Node | undefined) {
+    for (const node of nodes) {
+      if (parent) {
+        this.parents.set(node, parent)
       }
-      dir.children.push({ kind: 'file', id: uri.toString(), label: fileName, uri, children: todos })
-
-      // Walk up from the file to give each ancestor folder its real Uri.
-      let folderUri = Uri.joinPath(uri, '..')
-      for (let i = trail.length - 1; i >= 0; i--) {
-        trail[i].uri ??= folderUri
-        folderUri = Uri.joinPath(folderUri, '..')
+      if (isParent(node)) {
+        this.linkParents(node.children, node)
       }
     }
-
-    finalize(root)
-    compact(root)
-    return root.children
   }
+}
+
+function locKey(uri: Uri, line: number): string {
+  return `${uri.toString()}\0${line}`
+}
+
+function buildTagGroups(todos: Todo[]): TagNode[] {
+  const groups = new Map<string, Todo[]>()
+  for (const todo of todos) {
+    const list = groups.get(todo.tag) ?? []
+    list.push(todo)
+    groups.set(todo.tag, list)
+  }
+
+  return [...groups.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([label, children]) => ({ kind: 'tag' as const, id: `tag/${label}`, label, children }))
+}
+
+function buildFileTree(todos: Todo[]): Array<DirNode | FileNode> {
+  // Collect todos per file, keeping the scanner's line order.
+  const byFile = new Map<string, Todo[]>()
+  for (const todo of todos) {
+    const key = todo.uri.toString()
+    const list = byFile.get(key) ?? []
+    list.push(todo)
+    byFile.set(key, list)
+  }
+
+  // Build a folder hierarchy from each file's relative path. In multi-root
+  // workspaces the leading segment is the workspace folder name, which keeps
+  // files from different roots in separate top-level branches.
+  const root: DirNode = { kind: 'dir', id: '', label: '', children: [], count: 0 }
+  for (const fileTodos of byFile.values()) {
+    const uri = fileTodos[0].uri
+    const segments = workspace.asRelativePath(uri).split('/')
+    const fileName = segments.pop()!
+
+    let dir = root
+    let path = ''
+    const trail: DirNode[] = []
+    for (const segment of segments) {
+      path += `/${segment}`
+      let child = dir.children.find(
+        (c): c is DirNode => c.kind === 'dir' && c.label === segment,
+      )
+      if (!child) {
+        child = { kind: 'dir', id: path, label: segment, children: [], count: 0 }
+        dir.children.push(child)
+      }
+      dir = child
+      trail.push(child)
+    }
+    dir.children.push({ kind: 'file', id: uri.toString(), label: fileName, uri, children: fileTodos })
+
+    // Walk up from the file to give each ancestor folder its real Uri.
+    let folderUri = Uri.joinPath(uri, '..')
+    for (let i = trail.length - 1; i >= 0; i--) {
+      trail[i].uri ??= folderUri
+      folderUri = Uri.joinPath(folderUri, '..')
+    }
+  }
+
+  finalize(root)
+  compact(root)
+  return root.children
 }
 
 function isParent(node: Node): node is TagNode | DirNode | FileNode {
@@ -182,9 +261,9 @@ function compact(dir: DirNode): void {
   }
 }
 
-function tagItem(tag: TagNode, state: TreeItemCollapsibleState): TreeItem {
+function tagItem(tag: TagNode, state: TreeItemCollapsibleState, colors: TagColors): TreeItem {
   const item = new TreeItem(tag.label, state)
-  item.iconPath = new ThemeIcon('tag', new ThemeColor('charts.yellow'))
+  item.iconPath = new ThemeIcon('tag', tagColor(colors, tag.label))
   item.description = String(tag.children.length)
   return item
 }
@@ -205,11 +284,15 @@ function fileItem(file: FileNode, state: TreeItemCollapsibleState): TreeItem {
   return item
 }
 
-function todoItem(todo: Todo): TreeItem {
+function todoItem(todo: Todo, colors: TagColors): TreeItem {
   const item = new TreeItem(todo.text || todo.tag)
-  item.iconPath = new ThemeIcon('circle-filled', new ThemeColor('charts.blue'))
+  // Colour the dot by tag so the tag is recognisable even in file grouping,
+  // where there is no tag header above it.
+  item.iconPath = new ThemeIcon('circle-filled', tagColor(colors, todo.tag))
   item.description = `${workspace.asRelativePath(todo.uri)}:${todo.line + 1}`
   item.tooltip = new MarkdownString(`**${todo.tag}** · ${item.description}\n\n${todo.text}`)
+  // Marks the item for the copy commands' context-menu `when` clause.
+  item.contextValue = 'todo'
   item.command = {
     command: 'vscode.open',
     title: 'Open',

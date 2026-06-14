@@ -1,37 +1,25 @@
 import type { TextEditor, TextEditorDecorationType } from 'vscode'
-import type { Config } from './config'
-import { DecorationRangeBehavior, OverviewRulerLane, Range, ThemeColor, window } from 'vscode'
+import type { Config, HighlightMode } from './config'
+import { DecorationRangeBehavior, OverviewRulerLane, Range, window } from 'vscode'
+import { buildTagColors } from './palette'
 import { scanDocument } from './scanner'
-
-// Built-in theme colours reused for tag highlights so they adapt to light,
-// dark, and high-contrast themes without any user colour configuration. Tags
-// are assigned a colour by their sorted position, cycling when there are more
-// tags than palette entries.
-const PALETTE = [
-  'charts.yellow',
-  'charts.red',
-  'charts.orange',
-  'charts.blue',
-  'charts.green',
-  'charts.purple',
-]
 
 /** Paints matching comment tags in the visible editors. */
 export class TodoDecorator {
-  private enabled: boolean
+  private mode: HighlightMode
   private tags: string[]
   // One decoration type per tag, keyed by its upper-case name.
   private readonly types = new Map<string, TextEditorDecorationType>()
 
   constructor(config: Config) {
-    this.enabled = config.highlightEnabled
+    this.mode = config.highlight
     this.tags = config.tags
     this.build()
   }
 
   /** Re-read config, rebuild decoration types, and repaint. */
   setConfig(config: Config) {
-    this.enabled = config.highlightEnabled
+    this.mode = config.highlight
     this.tags = config.tags
     // Disposing types also clears their decorations from every editor.
     this.clearTypes()
@@ -51,12 +39,10 @@ export class TodoDecorator {
   }
 
   private build() {
-    if (!this.enabled) {
+    if (this.mode === 'off') {
       return
     }
-    const tags = [...new Set(this.tags.map(tag => tag.toUpperCase()))].sort()
-    tags.forEach((tag, index) => {
-      const color = new ThemeColor(PALETTE[index % PALETTE.length])
+    for (const [tag, color] of buildTagColors(this.tags)) {
       this.types.set(tag, window.createTextEditorDecorationType({
         color,
         fontWeight: 'bold',
@@ -64,7 +50,7 @@ export class TodoDecorator {
         overviewRulerLane: OverviewRulerLane.Right,
         rangeBehavior: DecorationRangeBehavior.ClosedClosed,
       }))
-    })
+    }
   }
 
   private clearTypes() {
@@ -81,8 +67,12 @@ export class TodoDecorator {
     const byTag = new Map<string, Range[]>()
     for (const match of scanDocument(editor.document, this.tags)) {
       // Tags keep their length when upper-cased, so the tag word spans
-      // [column, column + tag.length] on its line.
-      const range = new Range(match.line, match.column, match.line, match.column + match.tag.length)
+      // [column, column + tag.length] on its line. With whole-line highlight
+      // the range runs to the end of the line, covering the comment text too.
+      const end = this.mode === 'line'
+        ? editor.document.lineAt(match.line).range.end.character
+        : match.column + match.tag.length
+      const range = new Range(match.line, match.column, match.line, end)
       const ranges = byTag.get(match.tag) ?? []
       ranges.push(range)
       byTag.set(match.tag, ranges)
