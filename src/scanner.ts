@@ -20,9 +20,20 @@ const MAX_TEXT_LENGTH = 200
 // How many files to read at once during a scan.
 const MAX_CONCURRENCY = 16
 
-// Comment leaders across common languages, so plain words like "todo list"
-// in strings or prose don't get picked up.
-const COMMENT_LEADER = String.raw`(?://+|/\*+|\*+|<!--|#+|;+|--+|%+|"""|''')`
+// Comment openers across common languages, required before a tag so plain prose
+// like "todo list" in a string isn't picked up. Covers `//` C-family, `/*`
+// block, `/+` D, `*` block continuation, `<!--` HTML, `<#` PowerShell, `(*`
+// OCaml/F#/Pascal, `{-` Haskell, `#=` Julia, `#` shell, `;` Lisp/ini, `--`
+// SQL/Lua/Haskell, `%` LaTeX/Erlang, `"""`/`'''` Python. `#=` precedes `#+` so
+// the Julia opener wins over the bare `#`.
+const COMMENT_LEADER = String.raw`(?://+|/\*+|/\+|\*+|<!--|<#|\(\*+|\{-|#=|#+|;+|--+|%+|"""|''')`
+
+// Closing delimiters for block / inline comments. Stripped from the end of the
+// line *before* matching so they can never bleed into the captured text — e.g.
+// the `-->` in `<!-- TODO -->` must not be eaten by the tag separator. Covers
+// `*/` C-family, `*)` OCaml/Pascal, `-->` HTML, `-}` Haskell, `#>` PowerShell,
+// `=#` Julia, `+/` D, `"""`/`'''` Python.
+const COMMENT_CLOSER = /\s*(?:\*\/|\*\)|-{2,}>|-\}|#>|=#|\+\/|"""|''')\s*$/
 
 const decoder = new TextDecoder('utf-8', { fatal: false })
 
@@ -80,8 +91,10 @@ async function scanFile(uri: Uri, pattern: RegExp): Promise<Todo[]> {
   const lines = decoder.decode(bytes).split(/\r?\n/)
 
   lines.forEach((line, index) => {
-    pattern.lastIndex = 0
-    const match = pattern.exec(line)
+    // Drop a trailing comment closer first; we only trim the end, so column
+    // offsets at the start of the line stay valid.
+    const stripped = line.replace(COMMENT_CLOSER, '')
+    const match = pattern.exec(stripped)
     if (match) {
       todos.push({
         tag: match[1].toUpperCase(),
@@ -106,9 +119,7 @@ function buildPattern(tags: string[]): RegExp {
 }
 
 function clean(text: string): string {
-  const trimmed = text
-    .replace(/\s*(?:\*\/|-->|"""|''')\s*$/, '')
-    .trim()
+  const trimmed = text.trim()
   return trimmed.length > MAX_TEXT_LENGTH
     ? `${trimmed.slice(0, MAX_TEXT_LENGTH)}…`
     : trimmed
