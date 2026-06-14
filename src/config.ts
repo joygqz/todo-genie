@@ -4,6 +4,7 @@ export type GroupBy = 'tag' | 'file'
 
 export interface Config {
   tags: string[]
+  highlightEnabled: boolean
   exclude: string[]
 }
 
@@ -22,6 +23,7 @@ export function getConfig(): Config {
 
   return {
     tags: tags.length ? tags : DEFAULT_TAGS,
+    highlightEnabled: config.get<boolean>('highlight', true),
     exclude,
   }
 }

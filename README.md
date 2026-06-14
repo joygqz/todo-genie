@@ -16,6 +16,7 @@ The view scans the whole workspace on startup and refreshes automatically as you
 - **Group by tag or file** — toggle from the title bar; file mode nests into a folder tree
 - **Collapse or expand all** — one title-bar button toggles the whole tree
 - **Click to navigate** — open the file at the exact line
+- **In-editor highlight** — matching tags are coloured right in the source, with a marker in the scrollbar overview ruler
 - **Live updates** — edits trigger a debounced rescan
 - **Configurable tags** — scan for your own markers
 
@@ -24,6 +25,7 @@ The view scans the whole workspace on startup and refreshes automatically as you
 | Setting | Description | Default |
 | --- | --- | --- |
 | `todo-genie.tags` | Comment tags to scan for | `TODO`, `FIXME`, `HACK`, `BUG`, `XXX`, `NOTE` |
+| `todo-genie.highlight` | Highlight matching comment tags directly in the editor | `true` |
 | `todo-genie.exclude` | Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude` (e.g. `**/*.min.js`) | `[]` |
 
 ## Commands

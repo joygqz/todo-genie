@@ -134,6 +134,12 @@
           "description": "Comment tags to scan for.",
           "order": 0
         },
+        "todo-genie.highlight": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight matching comment tags directly in the editor.",
+          "order": 1
+        },
         "todo-genie.exclude": {
           "type": "array",
           "items": {
@@ -141,7 +147,7 @@
           },
           "default": [],
           "markdownDescription": "Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude`, e.g. `**/*.min.js`.",
-          "order": 1
+          "order": 2
         }
       }
     }
