@@ -110,7 +110,7 @@
             "XXX",
             "NOTE"
           ],
-          "description": "Comment tags to scan for. Tags are matched as whole words inside comments.",
+          "description": "Comment tags to scan for.",
           "order": 0
         },
         "todo-genie.groupBy": {
@@ -120,12 +120,16 @@
             "file"
           ],
           "default": "tag",
-          "description": "Group todos by tag or by file.",
+          "description": "Group todos by tag or file.",
           "order": 1
         },
         "todo-genie.exclude": {
-          "type": "string",
-          "markdownDescription": "Extra glob to exclude from scanning, e.g. `**/*.min.js`. Dependency, build and VCS folders are always skipped.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra glob patterns to exclude from scanning. Inherits from `files.exclude` and `search.exclude`.",
           "order": 2
         }
       }

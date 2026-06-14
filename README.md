@@ -12,7 +12,7 @@ The view scans the whole workspace on startup and refreshes automatically as you
 
 ## Features
 
-- **Whole-codebase scan** — discovers tags across every text file, skipping `node_modules`, build output and binaries automatically
+- **Whole-codebase scan** — discovers tags across every text file, honouring your `files.exclude` / `search.exclude` settings and skipping build output and binaries automatically
 - **Group by tag or file** — toggle from the view title bar to see todos by marker (`TODO`, `FIXME`, …) or by file
 - **Click to navigate** — each item opens the file at the exact line
 - **Live updates** — file changes trigger a debounced rescan; no manual refresh needed
@@ -24,7 +24,7 @@ The view scans the whole workspace on startup and refreshes automatically as you
 | --- | --- | --- |
 | `todo-genie.tags` | Comment tags to scan for | `TODO`, `FIXME`, `HACK`, `BUG`, `XXX`, `NOTE` |
 | `todo-genie.groupBy` | Group todos by `tag` or `file` | `tag` |
-| `todo-genie.exclude` | Extra glob to exclude, e.g. `**/*.min.js` | — |
+| `todo-genie.exclude` | Extra glob patterns to exclude; inherits from `files.exclude` / `search.exclude` | `[]` |
 
 ## Commands
 

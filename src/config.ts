@@ -4,7 +4,7 @@ export type GroupBy = 'tag' | 'file'
 
 export interface Config {
   tags: string[]
-  exclude: string
+  exclude: string[]
   groupBy: GroupBy
 }
 
@@ -17,9 +17,13 @@ export function getConfig(): Config {
     .map(tag => tag.trim())
     .filter(Boolean)
 
+  const exclude = config.get<string[]>('exclude', [])
+    .map(glob => glob.trim())
+    .filter(Boolean)
+
   return {
     tags: tags.length ? tags : DEFAULT_TAGS,
-    exclude: config.get('exclude', '').trim(),
+    exclude,
     groupBy: config.get<GroupBy>('groupBy', 'tag'),
   }
 }

@@ -10,9 +10,6 @@ export interface Todo {
   column: number
 }
 
-// Skip dependency, build and VCS directories that never hold source TODOs.
-const DEFAULT_EXCLUDE = '**/{node_modules,.git,dist,out,build,.next,.nuxt,coverage,vendor}/**'
-
 // Only scan files up to this size — anything larger is generated or binary.
 const MAX_FILE_SIZE = 512 * 1024
 const MAX_TEXT_LENGTH = 200
@@ -20,34 +17,23 @@ const MAX_TEXT_LENGTH = 200
 // How many files to read at once during a scan.
 const MAX_CONCURRENCY = 16
 
-// Comment openers across common languages, required before a tag so plain prose
-// like "todo list" in a string isn't picked up. Covers `//` C-family, `/*`
-// block, `/+` D, `*` block continuation, `<!--` HTML, `<#` PowerShell, `(*`
-// OCaml/F#/Pascal, `{-` Haskell, `#=` Julia, `#` shell, `;` Lisp/ini, `--`
-// SQL/Lua/Haskell, `%` LaTeX/Erlang, `"""`/`'''` Python. `#=` precedes `#+` so
-// the Julia opener wins over the bare `#`.
+// Comment opener required before a tag, so prose like "todo list" in a string
+// isn't matched. `#=` precedes `#+` so the Julia opener wins over bare `#`.
 const COMMENT_LEADER = String.raw`(?://+|/\*+|/\+|\*+|<!--|<#|\(\*+|\{-|#=|#+|;+|--+|%+|"""|''')`
 
-// Closing delimiters for block / inline comments. Stripped from the end of the
-// line *before* matching so they can never bleed into the captured text — e.g.
-// the `-->` in `<!-- TODO -->` must not be eaten by the tag separator. Covers
-// `*/` C-family, `*)` OCaml/Pascal, `-->` HTML, `-}` Haskell, `#>` PowerShell,
-// `=#` Julia, `+/` D, `"""`/`'''` Python.
+// Trailing block/inline closer, stripped before matching so it can't bleed into
+// the captured text (e.g. the `-->` in `<!-- TODO -->`).
 const COMMENT_CLOSER = /\s*(?:\*\/|\*\)|-{2,}>|-\}|#>|=#|\+\/|"""|''')\s*$/
 
 const decoder = new TextDecoder('utf-8', { fatal: false })
 
 /**
  * Walks the workspace and returns every TODO-style comment found, sorted by
- * file then line. Honours the configured tags and exclude glob.
+ * file then line.
  */
 export async function scan(config: Config, token?: CancellationToken): Promise<Todo[]> {
   const pattern = buildPattern(config.tags)
-  const exclude = config.exclude
-    ? `{${DEFAULT_EXCLUDE},${config.exclude}}`
-    : DEFAULT_EXCLUDE
-
-  const files = await workspace.findFiles('**/*', exclude, undefined, token)
+  const files = await workspace.findFiles('**/*', buildExclude(config), undefined, token)
   const todos: Todo[] = []
 
   // Read files in parallel with a bounded number of workers so large
@@ -67,6 +53,24 @@ export async function scan(config: Config, token?: CancellationToken): Promise<T
 
   return todos.sort((a, b) =>
     a.uri.fsPath.localeCompare(b.uri.fsPath) || a.line - b.line)
+}
+
+/**
+ * Merge `todo-genie.exclude` with the user's `files.exclude` / `search.exclude`.
+ * findFiles ignores the global settings once an explicit exclude is passed, so
+ * we resolve them ourselves.
+ */
+function buildExclude(config: Config): string | null {
+  const globals = ['files', 'search'].flatMap(section =>
+    Object.entries(workspace.getConfiguration(section).get<Record<string, boolean>>('exclude') ?? {})
+      .filter(([, enabled]) => enabled)
+      .map(([glob]) => glob))
+
+  const patterns = [...globals, ...config.exclude]
+  if (patterns.length === 0) {
+    return null
+  }
+  return patterns.length === 1 ? patterns[0] : `{${patterns.join(',')}}`
 }
 
 async function scanFile(uri: Uri, pattern: RegExp): Promise<Todo[]> {
