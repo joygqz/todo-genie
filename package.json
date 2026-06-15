@@ -129,6 +129,31 @@
         "category": "Todo Genie",
         "command": "todo-genie.copyLocation",
         "title": "Copy Location"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.openFile",
+        "title": "Open"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.revealInExplorer",
+        "title": "Reveal in Explorer View"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.revealFileInOS",
+        "title": "Reveal in File Explorer"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.copyPath",
+        "title": "Copy Path"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.copyRelativePath",
+        "title": "Copy Relative Path"
       }
     ],
     "menus": {
@@ -151,6 +176,26 @@
         },
         {
           "command": "todo-genie.copyLocation",
+          "when": "false"
+        },
+        {
+          "command": "todo-genie.openFile",
+          "when": "false"
+        },
+        {
+          "command": "todo-genie.revealInExplorer",
+          "when": "false"
+        },
+        {
+          "command": "todo-genie.revealFileInOS",
+          "when": "false"
+        },
+        {
+          "command": "todo-genie.copyPath",
+          "when": "false"
+        },
+        {
+          "command": "todo-genie.copyRelativePath",
           "when": "false"
         }
       ],
@@ -196,6 +241,31 @@
           "command": "todo-genie.copyLocation",
           "group": "9_cutcopypaste@2",
           "when": "view == todo-genie.todos && viewItem == todo"
+        },
+        {
+          "command": "todo-genie.openFile",
+          "group": "navigation@1",
+          "when": "view == todo-genie.todos && viewItem == file"
+        },
+        {
+          "command": "todo-genie.revealInExplorer",
+          "group": "navigation@2",
+          "when": "view == todo-genie.todos && (viewItem == file || viewItem == dir)"
+        },
+        {
+          "command": "todo-genie.revealFileInOS",
+          "group": "navigation@3",
+          "when": "view == todo-genie.todos && (viewItem == file || viewItem == dir)"
+        },
+        {
+          "command": "todo-genie.copyPath",
+          "group": "9_cutcopypaste@1",
+          "when": "view == todo-genie.todos && (viewItem == file || viewItem == dir)"
+        },
+        {
+          "command": "todo-genie.copyRelativePath",
+          "group": "9_cutcopypaste@2",
+          "when": "view == todo-genie.todos && (viewItem == file || viewItem == dir)"
         }
       ],
       "editor/context": [

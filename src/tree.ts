@@ -273,6 +273,8 @@ function dirItem(dir: DirNode, state: TreeItemCollapsibleState): TreeItem {
   item.iconPath = ThemeIcon.Folder
   item.resourceUri = dir.uri
   item.description = String(dir.count)
+  // Marks the item for the folder context-menu `when` clauses.
+  item.contextValue = 'dir'
   return item
 }
 
@@ -281,6 +283,8 @@ function fileItem(file: FileNode, state: TreeItemCollapsibleState): TreeItem {
   item.iconPath = ThemeIcon.File
   item.resourceUri = file.uri
   item.description = String(file.children.length)
+  // Marks the item for the file context-menu `when` clauses.
+  item.contextValue = 'file'
   return item
 }
 

@@ -1,4 +1,4 @@
-import type { ExtensionContext } from 'vscode'
+import type { ExtensionContext, Uri } from 'vscode'
 import type { GroupBy } from './config'
 import type { Todo } from './scanner'
 import { CancellationTokenSource, commands, env, window, workspace } from 'vscode'
@@ -113,6 +113,14 @@ export function activate(context: ExtensionContext) {
   const copyLocation = (todo?: Todo) =>
     copy(todo && `${workspace.asRelativePath(todo.uri)}:${todo.line + 1}`)
 
+  // File/folder context-menu actions delegate to VS Code's built-in commands,
+  // which expect the resource Uri carried by the clicked tree node.
+  const onResource = (command: string) => (node?: { uri?: Uri }) => {
+    if (node?.uri) {
+      commands.executeCommand(command, node.uri)
+    }
+  }
+
   // Coalesce bursts of file-system events into a single rescan.
   const scheduleRefresh = () => {
     clearTimeout(refreshTimer)
@@ -151,6 +159,11 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand('todo-genie.revealInTree', revealInTree),
     commands.registerCommand('todo-genie.copyText', copyText),
     commands.registerCommand('todo-genie.copyLocation', copyLocation),
+    commands.registerCommand('todo-genie.openFile', onResource('vscode.open')),
+    commands.registerCommand('todo-genie.revealInExplorer', onResource('revealInExplorer')),
+    commands.registerCommand('todo-genie.revealFileInOS', onResource('revealFileInOS')),
+    commands.registerCommand('todo-genie.copyPath', onResource('copyFilePath')),
+    commands.registerCommand('todo-genie.copyRelativePath', onResource('copyRelativeFilePath')),
     window.onDidChangeActiveTextEditor(onActiveEditor),
     window.onDidChangeVisibleTextEditors(() => decorator.refresh()),
     window.onDidChangeTextEditorSelection(updateLineContext),
