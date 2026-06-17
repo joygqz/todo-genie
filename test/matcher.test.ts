@@ -35,6 +35,28 @@ describe('findInLines', () => {
     expect(find('const s = "// TODO not real"')).toHaveLength(0)
   })
 
+  it('ignores a tag inside a single-quoted string literal', () => {
+    expect(find('const [m] = find(\'// TODO not real\')')).toHaveLength(0)
+  })
+
+  it('treats a nested quote inside a single-quoted string as content', () => {
+    expect(find('find(\'foo("bar") // TODO not real\')')).toHaveLength(0)
+  })
+
+  it('treats an escaped quote as a literal, not a delimiter', () => {
+    // The \' does not close the surrounding single-quoted span, so the tag
+    // stays inside the string and is not matched.
+    expect(find('find(\'a\\\'b // TODO not real\')')).toHaveLength(0)
+  })
+
+  it('does not let a prose contraction hide a later real tag', () => {
+    // The apostrophe in "don't" must not open a phantom string span that
+    // swallows the tag following it later on the same line.
+    const [match] = find('x++ /* don\'t */ // TODO fix it')
+    expect(match?.tag).toBe('TODO')
+    expect(match?.text).toBe('fix it')
+  })
+
   it('still finds a real tag after a balanced string on the same line', () => {
     const [match] = find('foo("bar") // TODO real one')
     expect(match?.tag).toBe('TODO')

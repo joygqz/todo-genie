@@ -68,28 +68,52 @@ function escapeRegExp(text: string): string {
 
 /**
  * True when `index` sits inside a string or inline-code span, like the tag in
- * `const s = "// TODO"`. Tracks the delimiter that opened the span so a `"`
- * nested in a backtick span (or vice versa) counts as content, not a new
- * string — a plain parity count would mis-pair the two. Apostrophes are
- * ignored; they run unbalanced in prose ("don't"). `"` and backticks are
- * assumed balanced: a stray one (rare in a real comment) leaves the span open
- * and can hide a later tag — a trade we accept to keep literals like the
- * example above out.
+ * `const s = "// TODO"` or `find('// TODO')`. Tracks the delimiter that opened
+ * the span so a `"` nested in a backtick span (or vice versa) counts as
+ * content, not a new string — a plain parity count would mis-pair the two.
+ *
+ * Single quotes count as delimiters too, except an apostrophe flanked by
+ * letters on both sides — that's a contraction or possessive (don't, it's),
+ * not a string, and it runs unbalanced in prose. Quotes are assumed balanced:
+ * a stray one (rare in a real comment) leaves the span open and can hide a
+ * later tag — a trade we accept to keep literals like the examples above out.
  */
 function insideStringOrCode(line: string, index: number): boolean {
   let open: string | undefined
   for (let i = 0; i < index; i++) {
     const ch = line[i]
-    if (ch === '`' || ch === '"') {
-      if (open === undefined) {
-        open = ch
-      }
-      else if (open === ch) {
-        open = undefined
-      }
+    if (ch !== '`' && ch !== '"' && ch !== '\'') {
+      continue
+    }
+    // A quote escaped by an odd run of backslashes is a literal character
+    // (`\'`, `\"`), not a delimiter.
+    if (isEscaped(line, i)) {
+      continue
+    }
+    // An apostrophe between two letters is part of a word, not a delimiter.
+    if (ch === '\'' && isLetter(line[i - 1]) && isLetter(line[i + 1])) {
+      continue
+    }
+    if (open === undefined) {
+      open = ch
+    }
+    else if (open === ch) {
+      open = undefined
     }
   }
   return open !== undefined
+}
+
+function isLetter(ch: string | undefined): boolean {
+  return ch !== undefined && /[a-z]/i.test(ch)
+}
+
+function isEscaped(line: string, index: number): boolean {
+  let backslashes = 0
+  for (let i = index - 1; i >= 0 && line[i] === '\\'; i--) {
+    backslashes++
+  }
+  return backslashes % 2 === 1
 }
 
 function clean(text: string): string {
