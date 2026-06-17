@@ -352,12 +352,6 @@
           "default": [],
           "markdownDescription": "Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude`, e.g. `**/*.min.js`.",
           "order": 3
-        },
-        "todo-genie.statusBar": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the total TODO count in the status bar.",
-          "order": 4
         }
       }
     }

@@ -10,7 +10,6 @@ export interface Config {
   exclude: string[]
   /** Tag (upper-cased) to theme-colour-id overrides for the shared accent. */
   tagColors: Map<string, string>
-  statusBar: boolean
 }
 
 const DEFAULT_TAGS = ['TODO', 'FIXME', 'HACK', 'BUG', 'XXX', 'NOTE']
@@ -39,6 +38,5 @@ export function getConfig(): Config {
     highlight: config.get<HighlightMode>('highlight', 'tag'),
     exclude,
     tagColors,
-    statusBar: config.get<boolean>('statusBar', true),
   }
 }
