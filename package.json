@@ -319,6 +319,15 @@
           "description": "Comment tags to scan for.",
           "order": 0
         },
+        "todo-genie.tagColors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "markdownDescription": "Override the accent colour per tag with a [theme colour id](https://code.visualstudio.com/api/references/theme-color) (not a hex value), shared by the tree and editor highlight, e.g. `{ \"TODO\": \"charts.green\", \"FIXME\": \"errorForeground\" }`. Tags left out cycle through the built-in palette (`charts.yellow`, `red`, `orange`, `blue`, `green`, `purple`) by alphabetical position.",
+          "order": 1
+        },
         "todo-genie.highlight": {
           "type": "string",
           "enum": [
@@ -333,7 +342,7 @@
           ],
           "default": "tag",
           "description": "How to highlight matching comment tags directly in the editor.",
-          "order": 1
+          "order": 2
         },
         "todo-genie.exclude": {
           "type": "array",
@@ -342,15 +351,6 @@
           },
           "default": [],
           "markdownDescription": "Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude`, e.g. `**/*.min.js`.",
-          "order": 2
-        },
-        "todo-genie.tagColors": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "default": {},
-          "markdownDescription": "Override the accent colour per tag with a [theme colour id](https://code.visualstudio.com/api/references/theme-color), shared by the tree and editor highlight, e.g. `{ \"TODO\": \"charts.green\", \"FIXME\": \"errorForeground\" }`. Tags left out fall back to the built-in palette.",
           "order": 3
         },
         "todo-genie.statusBar": {
