@@ -23,7 +23,8 @@ export function activate(context: ExtensionContext) {
   const tree = new TodoTree()
   const view = window.createTreeView(VIEW_ID, { treeDataProvider: tree })
   const decorator = new TodoDecorator(config)
-  const status = window.createStatusBarItem(StatusBarAlignment.Left, 0)
+  const status = window.createStatusBarItem('todo-genie.count', StatusBarAlignment.Left, 0)
+  status.name = 'Todo Genie'
   status.command = `${VIEW_ID}.focus`
 
   const setContext = (key: string, value: unknown) =>
@@ -37,7 +38,7 @@ export function activate(context: ExtensionContext) {
       : undefined
     if (config.statusBar) {
       status.text = `$(checklist) ${count}`
-      status.tooltip = `${count} TODO${count === 1 ? '' : 's'} — open Todo Genie`
+      status.tooltip = `${count} TODO${count === 1 ? '' : 's'}`
       status.show()
     }
     else {
