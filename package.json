@@ -24,6 +24,8 @@
     "productivity"
   ],
   "categories": [
+    "Visualization",
+    "Linters",
     "Other"
   ],
   "main": "./dist/extension.js",
