@@ -5,7 +5,7 @@ import { CancellationTokenSource, commands, env, Position, Range, StatusBarAlign
 import { getConfig } from './config'
 import { TodoDecorator } from './decorator'
 import { buildTagColors } from './palette'
-import { scan, scanDocument } from './scanner'
+import { scan, scanDocument, scanFileTodos } from './scanner'
 import { TodoTree } from './tree'
 
 const VIEW_ID = 'todo-genie.todos'
@@ -195,6 +195,11 @@ export function activate(context: ExtensionContext) {
   // types, debounced to stay off the keystroke path. Watcher events only fire
   // on save, so live edits need their own hook to keep the tree current.
   let liveDoc: TextDocument | undefined
+  // Files we've pushed live (pre-save) tree updates to. Only these can hold
+  // unsaved todos that diverge from disk, so only these need reconciling when
+  // their editor closes — reading any other closed file would be wasted work
+  // and could pull in todos the scan's exclude rules deliberately skip.
+  const liveEdited = new Set<string>()
   const scheduleDecorate = (document: TextDocument) => {
     liveDoc = document
     clearTimeout(decorateTimer)
@@ -203,6 +208,7 @@ export function activate(context: ExtensionContext) {
       if (liveDoc) {
         const todos = scanDocument(liveDoc, config.tags)
           .map(match => ({ ...match, uri: liveDoc!.uri }))
+        liveEdited.add(liveDoc.uri.toString())
         tree.updateFile(liveDoc.uri, todos)
         updateCounts()
         updateLineContext()
@@ -255,11 +261,28 @@ export function activate(context: ExtensionContext) {
         scheduleDecorate(event.document)
       }
     }),
+    // A closing document discards its in-memory buffer, taking any unsaved live
+    // edits with it. Reconcile such a file against disk so todos typed but never
+    // saved don't linger until the next rescan (and untitled buffers, whose disk
+    // read yields nothing, get their live todos dropped).
+    workspace.onDidCloseTextDocument(async (document) => {
+      if (!liveEdited.delete(document.uri.toString())) {
+        return
+      }
+      // Cancel a pending live update for this doc so its stale buffer can't
+      // re-add the discarded todos after we reconcile below.
+      if (liveDoc === document) {
+        clearTimeout(decorateTimer)
+        liveDoc = undefined
+      }
+      tree.updateFile(document.uri, await scanFileTodos(document.uri, config))
+      updateCounts()
+      updateLineContext()
+    }),
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('todo-genie')) {
         config = getConfig()
         decorator.setConfig(config)
-        updateCounts()
         runScan()
       }
     }),

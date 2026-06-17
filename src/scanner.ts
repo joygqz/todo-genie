@@ -101,6 +101,16 @@ async function scanFile(uri: Uri, pattern: RegExp): Promise<Todo[]> {
 }
 
 /**
+ * Scan a single file from disk, used to reconcile one file's todos with the
+ * saved state — e.g. after an editor closes and its unsaved buffer, along with
+ * any live tree updates it drove, is discarded. Mirrors one iteration of
+ * {@link scan}; returns `[]` for a missing, oversized, or binary file.
+ */
+export async function scanFileTodos(uri: Uri, config: Config): Promise<Todo[]> {
+  return scanFile(uri, buildPattern(syntaxFor(uri.path), config.tags))
+}
+
+/**
  * Scan an open document's live (possibly unsaved) text, used to drive editor
  * highlighting and live tree updates. Mirrors {@link scanFile} but works off
  * the in-memory buffer and reuses the same comment markers and tag pattern.

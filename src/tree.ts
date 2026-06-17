@@ -88,11 +88,6 @@ export class TodoTree implements TreeDataProvider<Node> {
     this.rebuild()
   }
 
-  /** Drop all todos for a file, e.g. when its editor closes unsaved. */
-  removeFile(uri: Uri) {
-    this.updateFile(uri, [])
-  }
-
   /** Rebuild the fast location lookup from the current todos. */
   private reindex() {
     this.locations.clear()
