@@ -18,12 +18,17 @@ export type TagColors = Map<string, ThemeColor>
 
 const FALLBACK = new ThemeColor(PALETTE[0])
 
-/** Map each configured tag (upper-cased) to its palette colour. */
-export function buildTagColors(tags: string[]): TagColors {
+/**
+ * Map each configured tag (upper-cased) to its accent colour. Tags listed in
+ * `overrides` use the given theme-colour id; the rest fall back to a palette
+ * entry chosen by sorted position.
+ */
+export function buildTagColors(tags: string[], overrides?: Map<string, string>): TagColors {
   const sorted = [...new Set(tags.map(tag => tag.toUpperCase()))].sort()
   const colors: TagColors = new Map()
   sorted.forEach((tag, index) => {
-    colors.set(tag, new ThemeColor(PALETTE[index % PALETTE.length]))
+    const override = overrides?.get(tag)
+    colors.set(tag, new ThemeColor(override ?? PALETTE[index % PALETTE.length]))
   })
   return colors
 }

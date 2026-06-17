@@ -4,6 +4,7 @@ import type { TagColors } from './palette'
 import type { Todo } from './scanner'
 import { EventEmitter, MarkdownString, Position, Range, ThemeIcon, TreeItem, TreeItemCollapsibleState, Uri, workspace } from 'vscode'
 import { tagColor } from './palette'
+import { sortTodos } from './scanner'
 
 /** A tag header, a folder, a file, or a single TODO. */
 type Node = TagNode | DirNode | FileNode | Todo
@@ -60,11 +61,44 @@ export class TodoTree implements TreeDataProvider<Node> {
   setData(todos: Todo[], tagColors: TagColors) {
     this.todos = todos
     this.tagColors = tagColors
+    this.reindex()
+    this.rebuild()
+  }
+
+  /** Every todo currently held, in canonical order — for search and export. */
+  getTodos(): readonly Todo[] {
+    return this.todos
+  }
+
+  /**
+   * Replace one file's todos in place, used for live (pre-save) updates as the
+   * user types. `todos` must already carry this file's Uri. A no-op data-wise
+   * when nothing changed, but always cheap: the tree is rebuilt from cache.
+   */
+  updateFile(uri: Uri, todos: Todo[]) {
+    const key = uri.toString()
+    const rest = this.todos.filter(todo => todo.uri.toString() !== key)
+    // Nothing to do when the file had no todos before and has none now — avoids
+    // a tree redraw on every keystroke in files without any markers.
+    if (rest.length === this.todos.length && todos.length === 0) {
+      return
+    }
+    this.todos = sortTodos([...rest, ...todos])
+    this.reindex()
+    this.rebuild()
+  }
+
+  /** Drop all todos for a file, e.g. when its editor closes unsaved. */
+  removeFile(uri: Uri) {
+    this.updateFile(uri, [])
+  }
+
+  /** Rebuild the fast location lookup from the current todos. */
+  private reindex() {
     this.locations.clear()
-    for (const todo of todos) {
+    for (const todo of this.todos) {
       this.locations.add(locKey(todo.uri, todo.line))
     }
-    this.rebuild()
   }
 
   setGroupBy(groupBy: GroupBy) {

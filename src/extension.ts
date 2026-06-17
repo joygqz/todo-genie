@@ -1,11 +1,11 @@
-import type { ExtensionContext, Uri } from 'vscode'
+import type { ExtensionContext, TextDocument, Uri } from 'vscode'
 import type { GroupBy } from './config'
 import type { Todo } from './scanner'
-import { CancellationTokenSource, commands, env, window, workspace } from 'vscode'
+import { CancellationTokenSource, commands, env, Position, Range, StatusBarAlignment, window, workspace } from 'vscode'
 import { getConfig } from './config'
 import { TodoDecorator } from './decorator'
 import { buildTagColors } from './palette'
-import { scan } from './scanner'
+import { scan, scanDocument } from './scanner'
 import { TodoTree } from './tree'
 
 const VIEW_ID = 'todo-genie.todos'
@@ -19,12 +19,31 @@ let decorateTimer: ReturnType<typeof setTimeout> | undefined
 let activeScan: CancellationTokenSource | undefined
 
 export function activate(context: ExtensionContext) {
+  let config = getConfig()
   const tree = new TodoTree()
   const view = window.createTreeView(VIEW_ID, { treeDataProvider: tree })
-  const decorator = new TodoDecorator(getConfig())
+  const decorator = new TodoDecorator(config)
+  const status = window.createStatusBarItem(StatusBarAlignment.Left, 0)
+  status.command = `${VIEW_ID}.focus`
 
   const setContext = (key: string, value: unknown) =>
     commands.executeCommand('setContext', key, value)
+
+  // Reflect the current todo count in the view badge and the status bar.
+  const updateCounts = () => {
+    const count = tree.getTodos().length
+    view.badge = count
+      ? { value: count, tooltip: `${count} TODO${count === 1 ? '' : 's'}` }
+      : undefined
+    if (config.statusBar) {
+      status.text = `$(checklist) ${count}`
+      status.tooltip = `${count} TODO${count === 1 ? '' : 's'} — open Todo Genie`
+      status.show()
+    }
+    else {
+      status.hide()
+    }
+  }
 
   const setCollapsed = (collapsed: boolean) => {
     tree.setCollapsed(collapsed)
@@ -59,7 +78,6 @@ export function activate(context: ExtensionContext) {
     const source = new CancellationTokenSource()
     activeScan = source
 
-    const config = getConfig()
     setContext('todo-genie.scanning', true)
     try {
       const todos = await window.withProgress(
@@ -67,10 +85,8 @@ export function activate(context: ExtensionContext) {
         () => scan(config, source.token),
       )
       if (!source.token.isCancellationRequested) {
-        tree.setData(todos, buildTagColors(config.tags))
-        view.badge = todos.length
-          ? { value: todos.length, tooltip: `${todos.length} TODO${todos.length === 1 ? '' : 's'}` }
-          : undefined
+        tree.setData(todos, buildTagColors(config.tags, config.tagColors))
+        updateCounts()
         updateLineContext()
       }
     }
@@ -113,6 +129,60 @@ export function activate(context: ExtensionContext) {
   const copyLocation = (todo?: Todo) =>
     copy(todo && `${workspace.asRelativePath(todo.uri)}:${todo.line + 1}`)
 
+  const openTodo = (todo: Todo) => {
+    const position = new Position(todo.line, todo.column)
+    return commands.executeCommand('vscode.open', todo.uri, {
+      selection: new Range(position, position),
+    })
+  }
+
+  // Fuzzy-searchable flat list of every todo, jumping to the picked one.
+  const search = async () => {
+    const todos = tree.getTodos()
+    if (todos.length === 0) {
+      window.showInformationMessage('No TODO comments found.')
+      return
+    }
+    const picked = await window.showQuickPick(
+      todos.map(todo => ({
+        label: todo.text || todo.tag,
+        description: todo.tag,
+        detail: `${workspace.asRelativePath(todo.uri)}:${todo.line + 1}`,
+        todo,
+      })),
+      { placeHolder: 'Search TODO comments', matchOnDescription: true, matchOnDetail: true },
+    )
+    if (picked) {
+      openTodo(picked.todo)
+    }
+  }
+
+  // Dump every todo to the clipboard as a Markdown checklist grouped by file.
+  const copyAll = () => {
+    const todos = tree.getTodos()
+    if (todos.length === 0) {
+      window.showInformationMessage('No TODO comments to copy.')
+      return
+    }
+    const byFile = new Map<string, Todo[]>()
+    for (const todo of todos) {
+      const file = workspace.asRelativePath(todo.uri)
+      const list = byFile.get(file) ?? []
+      list.push(todo)
+      byFile.set(file, list)
+    }
+    const lines: string[] = []
+    for (const [file, list] of byFile) {
+      lines.push(`## ${file}`, '')
+      for (const todo of list) {
+        lines.push(`- [ ] **${todo.tag}** (L${todo.line + 1}) ${todo.text}`.trimEnd())
+      }
+      lines.push('')
+    }
+    env.clipboard.writeText(`${lines.join('\n').trim()}\n`)
+    window.showInformationMessage(`Copied ${todos.length} TODO${todos.length === 1 ? '' : 's'}.`)
+  }
+
   // File/folder context-menu actions delegate to VS Code's built-in commands,
   // which expect the resource Uri carried by the clicked tree node.
   const onResource = (command: string) => (node?: { uri?: Uri }) => {
@@ -126,11 +196,24 @@ export function activate(context: ExtensionContext) {
     clearTimeout(refreshTimer)
     refreshTimer = setTimeout(runScan, 500)
   }
-  // Repaint highlights as the user types, debounced to stay off the keystroke
-  // path. Watcher events only fire on save, so live edits need their own hook.
-  const scheduleDecorate = () => {
+  // Repaint highlights and refresh the edited file's tree nodes as the user
+  // types, debounced to stay off the keystroke path. Watcher events only fire
+  // on save, so live edits need their own hook to keep the tree current.
+  let liveDoc: TextDocument | undefined
+  const scheduleDecorate = (document: TextDocument) => {
+    liveDoc = document
     clearTimeout(decorateTimer)
-    decorateTimer = setTimeout(() => decorator.refresh(), 150)
+    decorateTimer = setTimeout(() => {
+      decorator.refresh()
+      if (liveDoc) {
+        const todos = scanDocument(liveDoc, config.tags)
+          .map(match => ({ ...match, uri: liveDoc!.uri }))
+        tree.updateFile(liveDoc.uri, todos)
+        updateCounts()
+        updateLineContext()
+        liveDoc = undefined
+      }
+    }, 150)
   }
 
   const onActiveEditor = () => {
@@ -150,7 +233,10 @@ export function activate(context: ExtensionContext) {
     view,
     watcher,
     decorator,
+    status,
     commands.registerCommand('todo-genie.refresh', runScan),
+    commands.registerCommand('todo-genie.search', search),
+    commands.registerCommand('todo-genie.copyAll', copyAll),
     commands.registerCommand('todo-genie.toggleGrouping', toggleGrouping),
     commands.registerCommand('todo-genie.scopeCurrentFile', toggleScope),
     commands.registerCommand('todo-genie.scopeAllFiles', toggleScope),
@@ -171,12 +257,14 @@ export function activate(context: ExtensionContext) {
       // Only visible editors get repainted, so ignore edits to off-screen
       // documents (background buffers, output channels, …).
       if (window.visibleTextEditors.some(editor => editor.document === event.document)) {
-        scheduleDecorate()
+        scheduleDecorate(event.document)
       }
     }),
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('todo-genie')) {
-        decorator.setConfig(getConfig())
+        config = getConfig()
+        decorator.setConfig(config)
+        updateCounts()
         runScan()
       }
     }),
@@ -190,6 +278,7 @@ export function activate(context: ExtensionContext) {
   runScan()
   decorator.refresh()
   updateLineContext()
+  updateCounts()
 }
 
 export function deactivate() {

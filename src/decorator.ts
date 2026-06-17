@@ -8,12 +8,14 @@ import { scanDocument } from './scanner'
 export class TodoDecorator {
   private mode: HighlightMode
   private tags: string[]
+  private tagColors: Map<string, string>
   // One decoration type per tag, keyed by its upper-case name.
   private readonly types = new Map<string, TextEditorDecorationType>()
 
   constructor(config: Config) {
     this.mode = config.highlight
     this.tags = config.tags
+    this.tagColors = config.tagColors
     this.build()
   }
 
@@ -21,6 +23,7 @@ export class TodoDecorator {
   setConfig(config: Config) {
     this.mode = config.highlight
     this.tags = config.tags
+    this.tagColors = config.tagColors
     // Disposing types also clears their decorations from every editor.
     this.clearTypes()
     this.build()
@@ -42,7 +45,7 @@ export class TodoDecorator {
     if (this.mode === 'off') {
       return
     }
-    for (const [tag, color] of buildTagColors(this.tags)) {
+    for (const [tag, color] of buildTagColors(this.tags, this.tagColors)) {
       this.types.set(tag, window.createTextEditorDecorationType({
         color,
         fontWeight: 'bold',

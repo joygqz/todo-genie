@@ -87,6 +87,18 @@
       },
       {
         "category": "Todo Genie",
+        "command": "todo-genie.search",
+        "title": "Search TODOs",
+        "icon": "$(search)"
+      },
+      {
+        "category": "Todo Genie",
+        "command": "todo-genie.copyAll",
+        "title": "Copy All as Markdown",
+        "icon": "$(markdown)"
+      },
+      {
+        "category": "Todo Genie",
         "command": "todo-genie.toggleGrouping",
         "title": "Toggle Grouping",
         "icon": "$(group-by-ref-type)"
@@ -203,6 +215,11 @@
       ],
       "view/title": [
         {
+          "command": "todo-genie.search",
+          "group": "navigation@0",
+          "when": "view == todo-genie.todos"
+        },
+        {
           "command": "todo-genie.scopeCurrentFile",
           "group": "navigation@1",
           "when": "view == todo-genie.todos && todo-genie.scope == all"
@@ -231,6 +248,11 @@
           "command": "todo-genie.expandAll",
           "group": "navigation@4",
           "when": "view == todo-genie.todos && todo-genie.collapsed"
+        },
+        {
+          "command": "todo-genie.copyAll",
+          "group": "1_actions@1",
+          "when": "view == todo-genie.todos"
         }
       ],
       "view/item/context": [
@@ -321,6 +343,21 @@
           "default": [],
           "markdownDescription": "Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude`, e.g. `**/*.min.js`.",
           "order": 2
+        },
+        "todo-genie.tagColors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "markdownDescription": "Override the accent colour per tag with a [theme colour id](https://code.visualstudio.com/api/references/theme-color), shared by the tree and editor highlight, e.g. `{ \"TODO\": \"charts.green\", \"FIXME\": \"errorForeground\" }`. Tags left out fall back to the built-in palette.",
+          "order": 3
+        },
+        "todo-genie.statusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the total TODO count in the status bar.",
+          "order": 4
         }
       }
     }
@@ -335,6 +372,8 @@
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "check-types": "tsc --noEmit",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "ext:package": "vsce package",
     "ext:publish": "vsce publish",
     "release": "bumpp -a"
@@ -350,7 +389,8 @@
     "npm-run-all2": "^8.0.4",
     "rolldown": "^1.1.1",
     "simple-git-hooks": "^2.13.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.0.0"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm run check-types && pnpm exec lint-staged"
