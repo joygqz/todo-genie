@@ -35,7 +35,6 @@ The view scans the whole workspace on startup and refreshes automatically as you
 | `todo-genie.tagColors` | Override the accent colour per tag with a [theme colour id](https://code.visualstudio.com/api/references/theme-color), e.g. `{ "TODO": "charts.green" }` | `{}` |
 | `todo-genie.highlight` | How to highlight matching comment tags in the editor: `off`, `tag` (the tag word only), or `line` (through to the end of the line) | `tag` |
 | `todo-genie.exclude` | Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude` (e.g. `**/*.min.js`) | `[]` |
-| `todo-genie.statusBar` | Show the total TODO count in the status bar | `true` |
 
 ## Commands
 
