@@ -365,7 +365,7 @@
   "scripts": {
     "prepare": "simple-git-hooks",
     "vscode:prepublish": "pnpm run package",
-    "package": "pnpm run check-types && pnpm run lint && node build.js --production",
+    "package": "pnpm run verify && node build.js --production",
     "compile": "pnpm run check-types && pnpm run lint && node build.js",
     "watch": "run-p watch:*",
     "watch:build": "node build.js --watch",
@@ -374,9 +374,11 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "ext:package": "vsce package",
-    "ext:publish": "vsce publish",
-    "release": "bumpp -a"
+    "verify": "pnpm run check-types && pnpm run lint && pnpm run test",
+    "release:check": "node scripts/verify-release.mjs",
+    "ext:package": "vsce package --no-dependencies --out todo-genie.vsix",
+    "ext:publish": "vsce publish --no-dependencies --skip-duplicate",
+    "release": "bumpp -a --git-check --execute \"pnpm ext:package\""
   },
   "dependencies": {
     "ignore": "^7.0.5"
@@ -387,9 +389,11 @@
     "@types/vscode": "~1.90.0",
     "@vscode/vsce": "^3.9.2",
     "bumpp": "^11.1.0",
+    "changelogithub": "14.0.0",
     "eslint": "^10.5.0",
     "lint-staged": "^17.0.7",
     "npm-run-all2": "^8.0.4",
+    "ovsx": "1.1.1",
     "rolldown": "^1.1.1",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^6.0.3",
