@@ -2,10 +2,6 @@
 
 Find and browse every `TODO`, `FIXME`, `HACK` and other comment marker across your codebase in a single tree view — then jump straight to the line with one click.
 
-[![VS Marketplace](https://vsmarketplacebadges.dev/version-short/joygqz.todo-genie.svg)](https://marketplace.visualstudio.com/items?itemName=joygqz.todo-genie)
-[![Open VSX](https://img.shields.io/open-vsx/v/joygqz/todo-genie?label=Open%20VSX&color=orange)](https://open-vsx.org/extension/joygqz/todo-genie)
-[![GitHub Release](https://img.shields.io/github/v/release/joygqz/todo-genie?label=GitHub%20Release&color=orange)](https://github.com/joygqz/todo-genie/releases/latest)
-
 ## Quick Start
 
 1. Install from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=joygqz.todo-genie) or [Open VSX](https://open-vsx.org/extension/joygqz/todo-genie)
