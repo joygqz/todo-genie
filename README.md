@@ -2,9 +2,13 @@
 
 Find and browse every `TODO`, `FIXME`, `HACK` and other comment marker across your codebase in a single tree view — then jump straight to the line with one click.
 
+[![VS Marketplace](https://vsmarketplacebadges.dev/version-short/joygqz.todo-genie.svg)](https://marketplace.visualstudio.com/items?itemName=joygqz.todo-genie)
+[![Open VSX](https://img.shields.io/open-vsx/v/joygqz/todo-genie?label=Open%20VSX&color=orange)](https://open-vsx.org/extension/joygqz/todo-genie)
+[![GitHub Release](https://img.shields.io/github/v/release/joygqz/todo-genie?label=GitHub%20Release&color=orange)](https://github.com/joygqz/todo-genie/releases/latest)
+
 ## Quick Start
 
-1. Install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=joygqz.todo-genie)
+1. Install from the [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=joygqz.todo-genie) or [Open VSX](https://open-vsx.org/extension/joygqz/todo-genie)
 2. Open the **Todo Genie** view from the Activity Bar
 3. Click any item to jump to that comment
 
@@ -12,7 +16,7 @@ The view scans the whole workspace on startup and refreshes automatically as you
 
 ## Features
 
-- **Whole-codebase scan** — finds tags in every text file, honouring `files.exclude` and `search.exclude` and skipping binaries
+- **Whole-codebase scan** — finds tags in every text file, honouring `.gitignore`, `files.exclude`, and `search.exclude`, and skipping binaries
 - **Group by tag or file** — toggle from the title bar; file mode nests into a folder tree
 - **Colour-coded tags** — each tag gets a theme colour, shared between the tree and the editor highlight, and overridable per tag
 - **Search** — title-bar button opens a fuzzy-searchable list of every TODO; pick one to jump to it
@@ -35,6 +39,7 @@ The view scans the whole workspace on startup and refreshes automatically as you
 | `todo-genie.tagColors` | Override the accent colour per tag with a [theme colour id](https://code.visualstudio.com/api/references/theme-color), e.g. `{ "TODO": "charts.green" }` | `{}` |
 | `todo-genie.highlight` | How to highlight matching comment tags in the editor: `off`, `tag` (the tag word only), or `line` (through to the end of the line) | `tag` |
 | `todo-genie.exclude` | Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude` (e.g. `**/*.min.js`) | `[]` |
+| `todo-genie.respectGitIgnore` | Exclude paths matched by root or nested `.gitignore` files, including negated (`!`) rules | `true` |
 
 ## Commands
 

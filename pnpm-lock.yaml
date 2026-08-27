@@ -10,6 +10,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      ignore:
+        specifier: ^7.0.5
+        version: 7.0.5
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^9.0.0

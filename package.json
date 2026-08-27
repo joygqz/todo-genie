@@ -352,6 +352,12 @@
           "default": [],
           "markdownDescription": "Extra glob patterns to exclude, on top of `files.exclude` and `search.exclude`, e.g. `**/*.min.js`.",
           "order": 3
+        },
+        "todo-genie.respectGitIgnore": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Exclude files matched by workspace `.gitignore` files. Supports nested ignore files and negated (`!`) rules.",
+          "order": 4
         }
       }
     }
@@ -371,6 +377,9 @@
     "ext:package": "vsce package",
     "ext:publish": "vsce publish",
     "release": "bumpp -a"
+  },
+  "dependencies": {
+    "ignore": "^7.0.5"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",

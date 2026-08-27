@@ -1,7 +1,9 @@
-import type { CancellationToken, TextDocument, Uri } from 'vscode'
+import type { CancellationToken, TextDocument, Uri, WorkspaceFolder } from 'vscode'
 import type { Config } from './config'
+import type { GitIgnoreSource } from './gitignore'
 import type { Match } from './matcher'
-import { workspace } from 'vscode'
+import { Uri as VsCodeUri, workspace } from 'vscode'
+import { GitIgnoreMatcher } from './gitignore'
 import { buildPattern, findInLines } from './matcher'
 import { syntaxFor } from './syntax'
 
@@ -21,7 +23,14 @@ const decoder = new TextDecoder('utf-8', { fatal: false })
 
 /** Every matching comment in the workspace, sorted by file then line. */
 export async function scan(config: Config, token?: CancellationToken): Promise<Todo[]> {
-  const files = await workspace.findFiles('**/*', buildExclude(config), undefined, token)
+  const exclude = buildExclude(config)
+  const [files, gitIgnoreMatchers] = await Promise.all([
+    workspace.findFiles('**/*', exclude, undefined, token),
+    config.respectGitIgnore
+      ? loadGitIgnoreMatchers(exclude, token)
+      : Promise.resolve(new Map<string, GitIgnoreMatcher>()),
+  ])
+  const candidates = files.filter(uri => !isGitIgnored(uri, gitIgnoreMatchers))
   const todos: Todo[] = []
 
   // Compile each language's pattern once and share it across its files.
@@ -40,19 +49,73 @@ export async function scan(config: Config, token?: CancellationToken): Promise<T
   // Read files through a bounded worker pool so large workspaces stay parallel.
   let next = 0
   const worker = async () => {
-    while (next < files.length) {
+    while (next < candidates.length) {
       if (token?.isCancellationRequested) {
         break
       }
-      const uri = files[next++]
+      const uri = candidates[next++]
       todos.push(...await scanFile(uri, patternFor(uri)))
     }
   }
   await Promise.all(
-    Array.from({ length: Math.min(MAX_CONCURRENCY, files.length) }, worker),
+    Array.from({ length: Math.min(MAX_CONCURRENCY, candidates.length) }, worker),
   )
 
   return sortTodos(todos)
+}
+
+async function loadGitIgnoreMatchers(
+  exclude: string | null,
+  token?: CancellationToken,
+): Promise<Map<string, GitIgnoreMatcher>> {
+  const discovered = await workspace.findFiles('**/.gitignore', exclude, undefined, token)
+  const byUri = new Map(discovered.map(uri => [uri.toString(), uri]))
+
+  // A broad files.exclude rule such as **/.* can hide the root .gitignore from
+  // findFiles even though its rules should still govern ordinary source files.
+  for (const folder of workspace.workspaceFolders ?? []) {
+    const uri = VsCodeUri.joinPath(folder.uri, '.gitignore')
+    byUri.set(uri.toString(), uri)
+  }
+
+  const sourcesByFolder = new Map<string, GitIgnoreSource[]>()
+  const ignoreFiles = [...byUri.values()]
+  let next = 0
+  const worker = async () => {
+    while (next < ignoreFiles.length && !token?.isCancellationRequested) {
+      const uri = ignoreFiles[next++]
+      const folder = workspace.getWorkspaceFolder(uri)
+      if (!folder) {
+        continue
+      }
+      try {
+        const contents = decoder.decode(await workspace.fs.readFile(uri))
+        const relativePath = workspace.asRelativePath(uri, false).replace(/\\/g, '/')
+        const slash = relativePath.lastIndexOf('/')
+        const directory = slash === -1 ? '' : relativePath.slice(0, slash)
+        const sources = sourcesByFolder.get(folder.uri.toString()) ?? []
+        sources.push({ directory, contents })
+        sourcesByFolder.set(folder.uri.toString(), sources)
+      }
+      catch {
+        // A workspace does not need to contain a root .gitignore, and ignore
+        // files may disappear between discovery and reading.
+      }
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(MAX_CONCURRENCY, ignoreFiles.length) }, worker),
+  )
+
+  return new Map(
+    [...sourcesByFolder].map(([folder, sources]) => [folder, new GitIgnoreMatcher(sources)]),
+  )
+}
+
+function isGitIgnored(uri: Uri, matchers: ReadonlyMap<string, GitIgnoreMatcher>): boolean {
+  const folder: WorkspaceFolder | undefined = workspace.getWorkspaceFolder(uri)
+  const matcher = folder && matchers.get(folder.uri.toString())
+  return matcher?.ignores(workspace.asRelativePath(uri, false)) ?? false
 }
 
 /** Order todos by file path, then by line — the tree's canonical order. */

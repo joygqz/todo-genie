@@ -8,6 +8,7 @@ export interface Config {
   tags: string[]
   highlight: HighlightMode
   exclude: string[]
+  respectGitIgnore: boolean
   /** Tag (upper-cased) to theme-colour-id overrides for the shared accent. */
   tagColors: Map<string, string>
 }
@@ -37,6 +38,7 @@ export function getConfig(): Config {
     tags: tags.length ? tags : DEFAULT_TAGS,
     highlight: config.get<HighlightMode>('highlight', 'tag'),
     exclude,
+    respectGitIgnore: config.get<boolean>('respectGitIgnore', true),
     tagColors,
   }
 }
