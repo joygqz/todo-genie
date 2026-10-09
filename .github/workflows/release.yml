@@ -67,7 +67,7 @@ jobs:
 
       - name: Test tagged source
         working-directory: release-source
-        run: pnpm run check-types && pnpm run lint && pnpm run test
+        run: pnpm verify
 
       - name: Package tagged source
         working-directory: release-source
