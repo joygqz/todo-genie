@@ -5,6 +5,7 @@
   "version": "2.5.0",
   "packageManager": "pnpm@11.6.0+sha512.9a36518224080c6fe5165afdcfe79bfa118c29be703f3f462b1e32efe1e98e47e8750b148e08286250aad4113cc7993ca413c4e2cd447752708c2ee5751bc95f",
   "description": "Find and browse every TODO, FIXME, HACK and other comment marker across your codebase in one tree view.",
+  "author": "Quincy Zhang",
   "license": "MIT",
   "homepage": "https://github.com/joygqz/todo-genie#readme",
   "repository": {
@@ -64,7 +65,7 @@
     "viewsWelcome": [
       {
         "view": "todo-genie.todos",
-        "contents": "Scanning the workspace for TODO comments…",
+        "contents": "Scanning the workspace for TODO comments\u2026",
         "when": "todo-genie.scanning"
       },
       {
@@ -364,9 +365,9 @@
   },
   "scripts": {
     "prepare": "simple-git-hooks",
-    "vscode:prepublish": "pnpm run package",
-    "package": "pnpm run verify && node build.js --production",
-    "compile": "pnpm run check-types && pnpm run lint && node build.js",
+    "vscode:prepublish": "pnpm run build",
+    "package": "pnpm run build",
+    "compile": "pnpm run check-types && node build.js",
     "watch": "run-p watch:*",
     "watch:build": "node build.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
@@ -374,11 +375,13 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "pnpm run check-types && pnpm run lint && pnpm run test",
+    "verify": "pnpm run check-types && pnpm run test && pnpm run lint",
     "release:check": "node scripts/verify-release.mjs",
     "ext:package": "vsce package --no-dependencies --out todo-genie.vsix",
     "ext:publish": "vsce publish --no-dependencies --skip-duplicate",
-    "release": "bumpp -a --git-check --execute \"pnpm ext:package\""
+    "release": "bumpp -a --git-check --execute \"pnpm ext:package\"",
+    "build": "pnpm run verify && node build.js --production",
+    "check": "pnpm run build"
   },
   "dependencies": {
     "ignore": "^7.0.5"

@@ -50,6 +50,24 @@ The view scans the whole workspace on startup and refreshes automatically as you
 - `Copy Text` / `Copy Location` — copy a TODO's text or location from its tree context menu
 - `Open` / `Reveal in Explorer View` / `Reveal in File Explorer` / `Copy Path` / `Copy Relative Path` — file and folder actions from their tree context menu
 
-## License
+## Development
 
-[MIT](LICENSE)
+Use Node.js 24 and the pnpm version declared in `package.json`.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm compile
+pnpm verify
+pnpm ext:package
+```
+
+`compile` creates a development bundle; `verify` runs the available static checks and unit tests; `build` verifies and creates the production bundle. `ext:package` builds a VSIX through the same verification gate used in CI. Use `watch` during development.
+
+See [Architecture](docs/ARCHITECTURE.md) for module boundaries and lifecycle rules, and [Contributing](CONTRIBUTING.md) for validation and release conventions.
+
+Maintained by **Quincy Zhang**. The publisher ID remains `joygqz`; the Marketplace publisher display name is managed separately from source code.
+
+## Feedback and License
+
+- Report bugs or request features: [GitHub Issues](https://github.com/joygqz/todo-genie/issues)
+- [MIT](LICENSE)
